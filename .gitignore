@@ -34,3 +34,7 @@ Thumbs.db
 # Project specific
 backend/finance_hub.db
 backend/stock_data.db
+
+# ML Models (too large for GitHub)
+backend/models/*.h5
+backend/models/*.pkl
