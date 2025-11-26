@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/components/ui/toast'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
+import { ModelTableRow } from '@/components/model-table-row'
 
 interface ModelInfo {
   ticker: string
@@ -337,6 +338,7 @@ export default function ModelsPage() {
     const i = Math.floor(Math.log(bytes) / Math.log(k))
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i]
   }
+
 
   if (loading) {
     return (

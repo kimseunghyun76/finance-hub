@@ -7,11 +7,12 @@ import { predictionApi } from '@/lib/api'
 import { watchlistManager } from '@/lib/watchlist'
 import { STOCK_NAMES } from '@/lib/stock-names'
 import { formatElapsedTime } from '@/lib/utils'
-import { Star, TrendingUp, TrendingDown, DollarSign, Activity, Target, ChevronRight, BarChart3, Info, RefreshCw } from 'lucide-react'
+import { Star, TrendingUp, TrendingDown, DollarSign, Activity, Target, BarChart3, Info } from 'lucide-react'
 import { LoadingProgress } from '@/components/loading-progress'
 import { StockChart } from '@/components/stock-chart'
 import { PredictionExplanation } from '@/components/prediction-explanation'
 import { BuffettInsight } from '@/components/buffett-insight'
+import { StockListItem } from '@/components/stock-list-item'
 
 interface ModelDetail {
   ticker: string
@@ -431,194 +432,38 @@ export default function StocksListPage() {
                 {/* Stock List Content - US Stocks */}
                 {activeTab === 'US' && (
                   <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
-                    {usStocks.map((stock) => {
-                      // Use pre-loaded predictions from allPredictions map
-                      const prediction = allPredictions.get(stock.ticker)
-
-                      return (
-                        <div
-                          key={stock.ticker}
-                          className={`border-b last:border-b-0 ${
-                            selectedTicker === stock.ticker ? 'bg-primary/10 border-l-4 border-l-primary' : ''
-                          }`}
-                        >
-                          <button
-                            onClick={() => handleStockClick(stock.ticker)}
-                            className="w-full px-4 py-3 text-left hover:bg-accent transition-colors"
-                          >
-                            <div className="flex items-center justify-between mb-1">
-                              <p className="font-bold">{stock.name}</p>
-                              <ChevronRight className={`w-4 h-4 transition-transform ${
-                                selectedTicker === stock.ticker ? 'rotate-90' : ''
-                              }`} />
-                            </div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-xs text-muted-foreground font-mono">{stock.ticker}</span>
-                              {stock.trained && (
-                                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                              )}
-                            </div>
-
-                            {/* Training Time & AI Opinion - Always visible for trained stocks */}
-                            {stock.trained && (
-                              <div className="space-y-2 mt-2">
-                                <div className="flex items-center justify-between gap-2">
-                                  <span className="text-xs text-muted-foreground">
-                                    🕐 {formatElapsedTime(stock.lastTrained)}
-                                  </span>
-                                  {prediction && (
-                                    <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
-                                      prediction.action === 'BUY' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200' :
-                                      prediction.action === 'SELL' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200' :
-                                      'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200'
-                                    }`}>
-                                      {prediction.action === 'BUY' && '💰 매수'}
-                                      {prediction.action === 'SELL' && '📉 매도'}
-                                      {prediction.action === 'HOLD' && '⏸️ 보유'}
-                                    </span>
-                                  )}
-                                </div>
-                                {prediction && (
-                                  <div className="flex items-center justify-between gap-2">
-                                    <span className="text-xs text-muted-foreground">
-                                      변동률: <span className={`font-semibold ${
-                                        prediction.prediction?.change_percent > 0 ? 'text-green-600' : 'text-red-600'
-                                      }`}>
-                                        {prediction.prediction?.change_percent > 0 && '+'}
-                                        {(prediction.prediction?.change_percent || 0).toFixed(2)}%
-                                      </span>
-                                    </span>
-                                    <span className="text-xs text-muted-foreground">
-                                      확신도: <span className="font-semibold text-primary">
-                                        {((prediction.prediction?.confidence || 0) * 100).toFixed(0)}%
-                                      </span>
-                                    </span>
-                                  </div>
-                                )}
-                                {/* Warren Buffett Investment Insight - Compact */}
-                                {prediction && (
-                                  <div className="mt-2">
-                                    <BuffettInsight
-                                      ticker={stock.ticker}
-                                      prediction={prediction}
-                                      compact={true}
-                                    />
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </button>
-
-                          {/* Train Button */}
-                          <div className="px-4 pb-2">
-                            <button
-                              onClick={(e) => handleTrainModel(stock.ticker, e)}
-                              className="text-xs px-3 py-1 rounded bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-200 dark:hover:bg-blue-800 transition-colors flex items-center gap-1"
-                            >
-                              <RefreshCw className="w-3 h-3" />
-                              {stock.trained ? '재훈련' : '훈련'}
-                            </button>
-                          </div>
-                        </div>
-                      )
-                    })}
+                    {usStocks.map((stock) => (
+                      <StockListItem
+                        key={stock.ticker}
+                        ticker={stock.ticker}
+                        name={stock.name}
+                        trained={stock.trained}
+                        lastTrained={stock.lastTrained}
+                        selected={selectedTicker === stock.ticker}
+                        prediction={allPredictions.get(stock.ticker)}
+                        onClick={() => handleStockClick(stock.ticker)}
+                        onTrain={(e) => handleTrainModel(stock.ticker, e)}
+                      />
+                    ))}
                   </div>
                 )}
 
                 {/* Stock List Content - Korean Stocks */}
                 {activeTab === 'KR' && (
                   <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
-                    {krStocks.map((stock) => {
-                      // Use pre-loaded predictions from allPredictions map
-                      const prediction = allPredictions.get(stock.ticker)
-
-                      return (
-                        <div
-                          key={stock.ticker}
-                          className={`border-b last:border-b-0 ${
-                            selectedTicker === stock.ticker ? 'bg-primary/10 border-l-4 border-l-primary' : ''
-                          }`}
-                        >
-                          <button
-                            onClick={() => handleStockClick(stock.ticker)}
-                            className="w-full px-4 py-3 text-left hover:bg-accent transition-colors"
-                          >
-                            <div className="flex items-center justify-between mb-1">
-                              <p className="font-bold">{stock.name}</p>
-                              <ChevronRight className={`w-4 h-4 transition-transform ${
-                                selectedTicker === stock.ticker ? 'rotate-90' : ''
-                              }`} />
-                            </div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-xs text-muted-foreground font-mono">{stock.ticker}</span>
-                              {stock.trained && (
-                                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                              )}
-                            </div>
-
-                            {/* Training Time & AI Opinion - Always visible for trained stocks */}
-                            {stock.trained && (
-                              <div className="space-y-2 mt-2">
-                                <div className="flex items-center justify-between gap-2">
-                                  <span className="text-xs text-muted-foreground">
-                                    🕐 {formatElapsedTime(stock.lastTrained)}
-                                  </span>
-                                  {prediction && (
-                                    <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
-                                      prediction.action === 'BUY' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200' :
-                                      prediction.action === 'SELL' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200' :
-                                      'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200'
-                                    }`}>
-                                      {prediction.action === 'BUY' && '💰 매수'}
-                                      {prediction.action === 'SELL' && '📉 매도'}
-                                      {prediction.action === 'HOLD' && '⏸️ 보유'}
-                                    </span>
-                                  )}
-                                </div>
-                                {prediction && (
-                                  <div className="flex items-center justify-between gap-2">
-                                    <span className="text-xs text-muted-foreground">
-                                      변동률: <span className={`font-semibold ${
-                                        prediction.prediction?.change_percent > 0 ? 'text-green-600' : 'text-red-600'
-                                      }`}>
-                                        {prediction.prediction?.change_percent > 0 && '+'}
-                                        {(prediction.prediction?.change_percent || 0).toFixed(2)}%
-                                      </span>
-                                    </span>
-                                    <span className="text-xs text-muted-foreground">
-                                      확신도: <span className="font-semibold text-primary">
-                                        {((prediction.prediction?.confidence || 0) * 100).toFixed(0)}%
-                                      </span>
-                                    </span>
-                                  </div>
-                                )}
-                                {/* Warren Buffett Investment Insight - Compact */}
-                                {prediction && (
-                                  <div className="mt-2">
-                                    <BuffettInsight
-                                      ticker={stock.ticker}
-                                      prediction={prediction}
-                                      compact={true}
-                                    />
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </button>
-
-                          {/* Train Button */}
-                          <div className="px-4 pb-2">
-                            <button
-                              onClick={(e) => handleTrainModel(stock.ticker, e)}
-                              className="text-xs px-3 py-1 rounded bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-200 dark:hover:bg-blue-800 transition-colors flex items-center gap-1"
-                            >
-                              <RefreshCw className="w-3 h-3" />
-                              {stock.trained ? '재훈련' : '훈련'}
-                            </button>
-                          </div>
-                        </div>
-                      )
-                    })}
+                    {krStocks.map((stock) => (
+                      <StockListItem
+                        key={stock.ticker}
+                        ticker={stock.ticker}
+                        name={stock.name}
+                        trained={stock.trained}
+                        lastTrained={stock.lastTrained}
+                        selected={selectedTicker === stock.ticker}
+                        prediction={allPredictions.get(stock.ticker)}
+                        onClick={() => handleStockClick(stock.ticker)}
+                        onTrain={(e) => handleTrainModel(stock.ticker, e)}
+                      />
+                    ))}
                   </div>
                 )}
               </div>
