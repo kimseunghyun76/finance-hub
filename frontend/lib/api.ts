@@ -1,16 +1,118 @@
 /**
  * API client for Finance-Hub backend
  */
-import axios from 'axios'
+import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001'
 
+// Retry configuration
+const MAX_RETRIES = 3
+const RETRY_DELAY_MS = 1000
+const RETRY_STATUS_CODES = [408, 429, 500, 502, 503, 504]
+
+// Create axios instance
 export const api = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 30000, // 30 seconds timeout
 })
+
+/**
+ * Calculate exponential backoff delay
+ */
+function getRetryDelay(retryCount: number): number {
+  return RETRY_DELAY_MS * Math.pow(2, retryCount)
+}
+
+/**
+ * Check if error should trigger retry
+ */
+function shouldRetry(error: AxiosError, retryCount: number): boolean {
+  if (retryCount >= MAX_RETRIES) return false
+
+  // Network errors
+  if (!error.response && error.code === 'ECONNABORTED') return true
+  if (!error.response && error.message.includes('Network Error')) return true
+
+  // Specific HTTP status codes
+  if (error.response && RETRY_STATUS_CODES.includes(error.response.status)) {
+    return true
+  }
+
+  return false
+}
+
+/**
+ * Sleep utility for retry delays
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+// Request interceptor for retry logic
+api.interceptors.request.use(
+  (config) => {
+    // Initialize retry count
+    if (!config.headers) {
+      config.headers = {} as any
+    }
+    return config
+  },
+  (error) => Promise.reject(error)
+)
+
+// Response interceptor with retry logic
+api.interceptors.response.use(
+  (response) => response,
+  async (error: AxiosError) => {
+    const config = error.config as AxiosRequestConfig & { _retryCount?: number }
+
+    if (!config) {
+      return Promise.reject(error)
+    }
+
+    // Initialize retry count
+    config._retryCount = config._retryCount || 0
+
+    // Check if we should retry
+    if (shouldRetry(error, config._retryCount)) {
+      config._retryCount += 1
+
+      // Calculate delay with exponential backoff
+      const delay = getRetryDelay(config._retryCount - 1)
+
+      console.warn(
+        `API request failed. Retrying (${config._retryCount}/${MAX_RETRIES}) after ${delay}ms...`,
+        {
+          url: config.url,
+          method: config.method,
+          status: error.response?.status,
+          error: error.message,
+        }
+      )
+
+      // Wait before retrying
+      await sleep(delay)
+
+      // Retry the request
+      return api(config)
+    }
+
+    // Log error for debugging
+    console.error('API Error:', {
+      url: config.url,
+      method: config.method,
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message,
+      retries: config._retryCount,
+    })
+
+    return Promise.reject(error)
+  }
+)
 
 // Types
 export interface Portfolio {
@@ -619,11 +721,87 @@ export const accuracyApi = {
     api.get<TickerAccuracy>(`/api/v1/accuracy/ticker/${ticker}`, { params: { days } }),
 }
 
-// Error handler
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    console.error('API Error:', error.response?.data || error.message)
-    return Promise.reject(error)
+/**
+ * Safe API call wrapper with fallback support
+ * Returns [data, error] tuple
+ */
+export async function safeApiCall<T>(
+  apiCall: () => Promise<AxiosResponse<T>>,
+  fallbackValue?: T
+): Promise<[T | null, AxiosError | null]> {
+  try {
+    const response = await apiCall()
+    return [response.data, null]
+  } catch (error) {
+    const axiosError = error as AxiosError
+
+    // Log for monitoring
+    console.error('Safe API call failed:', {
+      url: axiosError.config?.url,
+      status: axiosError.response?.status,
+      message: axiosError.message,
+    })
+
+    // Return fallback if provided
+    if (fallbackValue !== undefined) {
+      return [fallbackValue, axiosError]
+    }
+
+    return [null, axiosError]
   }
-)
+}
+
+/**
+ * API health check
+ */
+export async function checkApiHealth(): Promise<boolean> {
+  try {
+    const response = await api.get('/health', { timeout: 5000 })
+    return response.status === 200
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Get user-friendly error message
+ */
+export function getErrorMessage(error: AxiosError | null): string {
+  if (!error) return '알 수 없는 오류가 발생했습니다.'
+
+  // Network errors
+  if (!error.response) {
+    if (error.code === 'ECONNABORTED') {
+      return '요청 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.'
+    }
+    if (error.message.includes('Network Error')) {
+      return '네트워크 연결을 확인해주세요.'
+    }
+    return '서버에 연결할 수 없습니다.'
+  }
+
+  // HTTP errors
+  const status = error.response.status
+  const data = error.response.data as any
+
+  switch (status) {
+    case 400:
+      return data?.detail || '잘못된 요청입니다.'
+    case 401:
+      return '인증이 필요합니다.'
+    case 403:
+      return '접근 권한이 없습니다.'
+    case 404:
+      return '요청한 데이터를 찾을 수 없습니다.'
+    case 429:
+      return '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.'
+    case 500:
+      return '서버 오류가 발생했습니다.'
+    case 502:
+    case 503:
+    case 504:
+      return '서버가 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도해주세요.'
+    default:
+      return data?.detail || `오류가 발생했습니다 (${status})`
+  }
+}
