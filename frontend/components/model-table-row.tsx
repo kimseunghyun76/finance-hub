@@ -52,7 +52,7 @@ export function ModelTableRow({
           )}
         </div>
       </td>
-      {description && (
+      {description !== undefined && (
         <td className="px-4 py-3">
           <span className="text-xs text-muted-foreground">{description}</span>
         </td>

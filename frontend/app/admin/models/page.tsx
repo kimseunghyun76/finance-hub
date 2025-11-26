@@ -5,8 +5,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/components/ui/toast'
-import { formatDistanceToNow } from 'date-fns'
-import { ko } from 'date-fns/locale'
 import { ModelTableRow } from '@/components/model-table-row'
 
 interface ModelInfo {
@@ -339,7 +337,6 @@ export default function ModelsPage() {
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i]
   }
 
-
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -527,77 +524,19 @@ export default function ModelsPage() {
                 </thead>
                 <tbody className="divide-y">
                   {usStocks.map((stock) => (
-                    <tr key={stock.ticker} className="hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-3">
-                        <span className="font-mono font-medium">{stock.ticker}</span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">{stock.name}</span>
-                          {stock.category === 'popular' && (
-                            <span className="text-xs bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 px-2 py-0.5 rounded">
-                              인기
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="text-xs text-muted-foreground">{stock.description}</span>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {stock.training ? (
-                          <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
-                            <svg className="animate-spin -ml-1 mr-2 h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            훈련 중
-                          </span>
-                        ) : stock.trained ? (
-                          <span className="inline-flex px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
-                            ✓ 훈련됨
-                          </span>
-                        ) : (
-                          <span className="inline-flex px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">
-                            미훈련
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-muted-foreground">
-                        {stock.last_trained ? (
-                          formatDistanceToNow(new Date(stock.last_trained), {
-                            addSuffix: true,
-                            locale: ko,
-                          })
-                        ) : (
-                          '-'
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right text-sm text-muted-foreground">
-                        {stock.file_size > 0 ? formatFileSize(stock.file_size) : '-'}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex gap-2 justify-end">
-                          <Button
-                            size="sm"
-                            variant={stock.trained ? "outline" : "default"}
-                            onClick={() => trainModel(stock.ticker)}
-                            disabled={stock.training}
-                          >
-                            {stock.trained ? '재훈련' : '훈련'}
-                          </Button>
-                          {stock.trained && (
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => deleteModel(stock.ticker)}
-                            >
-                              삭제
-                            </Button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
+                    <ModelTableRow
+                      key={stock.ticker}
+                      ticker={stock.ticker}
+                      name={stock.name}
+                      description={stock.description}
+                      category={stock.category}
+                      trained={stock.trained}
+                      training={stock.training}
+                      lastTrained={stock.last_trained}
+                      fileSize={stock.file_size}
+                      onTrain={() => trainModel(stock.ticker)}
+                      onDelete={() => deleteModel(stock.ticker)}
+                    />
                   ))}
                 </tbody>
               </table>
@@ -632,77 +571,19 @@ export default function ModelsPage() {
                 </thead>
                 <tbody className="divide-y">
                   {krStocks.map((stock) => (
-                    <tr key={stock.ticker} className="hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-3">
-                        <span className="font-mono font-medium">{stock.ticker}</span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">{stock.name}</span>
-                          {stock.category === 'popular' && (
-                            <span className="text-xs bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 px-2 py-0.5 rounded">
-                              인기
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="text-xs text-muted-foreground">{stock.description}</span>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {stock.training ? (
-                          <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
-                            <svg className="animate-spin -ml-1 mr-2 h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            훈련 중
-                          </span>
-                        ) : stock.trained ? (
-                          <span className="inline-flex px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
-                            ✓ 훈련됨
-                          </span>
-                        ) : (
-                          <span className="inline-flex px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">
-                            미훈련
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-muted-foreground">
-                        {stock.last_trained ? (
-                          formatDistanceToNow(new Date(stock.last_trained), {
-                            addSuffix: true,
-                            locale: ko,
-                          })
-                        ) : (
-                          '-'
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right text-sm text-muted-foreground">
-                        {stock.file_size > 0 ? formatFileSize(stock.file_size) : '-'}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex gap-2 justify-end">
-                          <Button
-                            size="sm"
-                            variant={stock.trained ? "outline" : "default"}
-                            onClick={() => trainModel(stock.ticker)}
-                            disabled={stock.training}
-                          >
-                            {stock.trained ? '재훈련' : '훈련'}
-                          </Button>
-                          {stock.trained && (
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => deleteModel(stock.ticker)}
-                            >
-                              삭제
-                            </Button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
+                    <ModelTableRow
+                      key={stock.ticker}
+                      ticker={stock.ticker}
+                      name={stock.name}
+                      description={stock.description}
+                      category={stock.category}
+                      trained={stock.trained}
+                      training={stock.training}
+                      lastTrained={stock.last_trained}
+                      fileSize={stock.file_size}
+                      onTrain={() => trainModel(stock.ticker)}
+                      onDelete={() => deleteModel(stock.ticker)}
+                    />
                   ))}
                 </tbody>
               </table>
@@ -737,67 +618,18 @@ export default function ModelsPage() {
                   </thead>
                   <tbody className="divide-y">
                     {otherStocks.map((stock) => (
-                      <tr key={stock.ticker} className="hover:bg-muted/30 transition-colors">
-                        <td className="px-4 py-3">
-                          <span className="font-mono font-medium">{stock.ticker}</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="text-sm">{stock.name}</span>
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          {stock.training ? (
-                            <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
-                              <svg className="animate-spin -ml-1 mr-2 h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                              </svg>
-                              훈련 중
-                            </span>
-                          ) : stock.trained ? (
-                            <span className="inline-flex px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
-                              ✓ 훈련됨
-                            </span>
-                          ) : (
-                            <span className="inline-flex px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">
-                              미훈련
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">
-                          {stock.last_trained ? (
-                            formatDistanceToNow(new Date(stock.last_trained), {
-                              addSuffix: true,
-                              locale: ko,
-                            })
-                          ) : (
-                            '-'
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-right text-sm text-muted-foreground">
-                          {stock.file_size > 0 ? formatFileSize(stock.file_size) : '-'}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <div className="flex gap-2 justify-end">
-                            <Button
-                              size="sm"
-                              variant={stock.trained ? "outline" : "default"}
-                              onClick={() => trainModel(stock.ticker)}
-                              disabled={stock.training}
-                            >
-                              {stock.trained ? '재훈련' : '훈련'}
-                            </Button>
-                            {stock.trained && (
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => deleteModel(stock.ticker)}
-                              >
-                                삭제
-                              </Button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
+                      <ModelTableRow
+                        key={stock.ticker}
+                        ticker={stock.ticker}
+                        name={stock.name}
+                        category={stock.category}
+                        trained={stock.trained}
+                        training={stock.training}
+                        lastTrained={stock.last_trained}
+                        fileSize={stock.file_size}
+                        onTrain={() => trainModel(stock.ticker)}
+                        onDelete={() => deleteModel(stock.ticker)}
+                      />
                     ))}
                   </tbody>
                 </table>
