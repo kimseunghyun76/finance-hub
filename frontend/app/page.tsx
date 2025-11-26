@@ -7,6 +7,7 @@ import { getStockName } from '@/lib/stock-names'
 import { formatPrice, isKoreanStock } from '@/lib/utils'
 import { TrendingUp, TrendingDown, DollarSign, Activity, AlertTriangle, ArrowRight, Clock, CheckCircle, BarChart3, BookOpen } from 'lucide-react'
 import { BuffettInsight } from '@/components/buffett-insight'
+import { LegalDisclaimer } from '@/components/legal-disclaimer'
 
 interface PredictionSummary {
   ticker: string
@@ -729,12 +730,8 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Footer Warning */}
-        <div className="p-4 border rounded-lg bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800">
-          <p className="text-sm text-yellow-800 dark:text-yellow-200">
-            ⚠️ <strong>투자 유의사항:</strong> 본 서비스는 투자 권유가 아닙니다. 모든 투자 결정은 본인의 책임 하에 신중히 하시기 바랍니다.
-          </p>
-        </div>
+        {/* Legal Disclaimer */}
+        <LegalDisclaimer variant="compact" />
       </div>
     </main>
   )
